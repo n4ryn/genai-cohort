@@ -1,6 +1,7 @@
 import { Agent, run, tool } from "@openai/agents";
 import "dotenv/config";
 import { z } from "zod";
+import { RECOMMENDED_PROMPT_PREFIX } from "@openai/agents-core/extensions";
 
 const getCurrentTime = tool({
   name: "get_current_time",
@@ -33,31 +34,28 @@ const cookingAgent = new Agent({
   name: "Cooking Agent",
   model: "gpt-4.1-mini",
   tools: [getCurrentTime, getMenuTool],
-  instructions: `You're a helpful cooking assistant who is speacialized in cooking food.
-    You help the users with food options and receipes and help them cook food`,
-  tools: [codingAgent.asTool()],
+  instructions: `You're a helpful cooking assistant who is specialized in cooking food.
+    You help the users with food options and recipes and help them cook food`,
 });
 
 const codingAgent = new Agent({
   name: "Coding Agent",
   model: "gpt-4.1-mini",
   instructions: `You are an expert coding assistant particularly in JavaScript.`,
-  tools: [cookingAgent.asTool()],
 });
 
 const gatewayAgent = Agent.create({
   name: "Gateway Agent",
   model: "gpt-4.1-mini",
-  instructions: `You determine which agent to call based on the user's query.`,
+  instructions: RECOMMENDED_PROMPT_PREFIX,
   handoffs: [codingAgent, cookingAgent],
 });
 
 async function chatWithAgent(query) {
   const response = await run(gatewayAgent, query);
   console.log("history: ", response.history);
+  console.log("Handoff: ", response.lastAgent.name);
   console.log("finalOutput: ", response.finalOutput);
 }
 
-// chatWithAgent("How much is the Chai?");
-
-chatWithAgent("How can i learn about JavaScript?");
+chatWithAgent("How much is the Chai?");
